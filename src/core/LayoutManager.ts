@@ -57,26 +57,32 @@ export default class LayoutManager {
   }
 
   static getTopHUDRect(): Phaser.Geom.Rectangle {
-    return LayoutManager.topHUDRect.clone()
+    const r = LayoutManager.topHUDRect
+    return new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height)
   }
 
   static getEnemyPanelRect(): Phaser.Geom.Rectangle {
-    return LayoutManager.enemyPanelRect.clone()
+    const r = LayoutManager.enemyPanelRect
+    return new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height)
   }
 
   static getEggPanelRect(): Phaser.Geom.Rectangle {
-    return LayoutManager.eggPanelRect.clone()
+    const r = LayoutManager.eggPanelRect
+    return new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height)
   }
 
   static getPlayerPanelRect(): Phaser.Geom.Rectangle {
-    return LayoutManager.playerPanelRect.clone()
+    const r = LayoutManager.playerPanelRect
+    return new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height)
   }
 
   static getBattleLogRect(): Phaser.Geom.Rectangle {
-    return LayoutManager.battleLogRect.clone()
+    const r = LayoutManager.battleLogRect
+    return new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height)
   }
 
   static getPrimaryButtonRect(): Phaser.Geom.Rectangle {
-    return LayoutManager.primaryButtonRect.clone()
+    const r = LayoutManager.primaryButtonRect
+    return new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height)
   }
 }

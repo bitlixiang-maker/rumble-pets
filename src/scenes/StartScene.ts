@@ -1,31 +1,24 @@
-import Phaser from 'phaser'
+// StartScene: shows a start placeholder then transitions to BattleScene.
+// Scene switching is intentionally simple; no gameplay implemented here.
 
-// StartScene is the main menu / entry point for the player.
-// Keep UI here simple: a title and a start button that switches to BattleScene.
+import Phaser from 'phaser'
+import BattleScene from './BattleScene'
+
 export default class StartScene extends Phaser.Scene {
   constructor() {
     super({ key: 'StartScene' })
   }
 
-  create() {
+  create(): void {
     const { width, height } = this.scale
+    this.add.text(width / 2, height / 2 - 20, 'Start Scene', { color: '#ffffff', fontSize: '32px' }).setOrigin(0.5)
+    this.add.text(width / 2, height / 2 + 20, 'Preparing Battle...', { color: '#cccccc', fontSize: '16px' }).setOrigin(0.5)
 
-    const title = this.add.text(width / 2, height / 2 - 150, 'Rumble Pets', {
-      fontFamily: 'Arial',
-      fontSize: '72px',
-      color: '#ffffff'
-    }).setOrigin(0.5)
+    // Register BattleScene and transition after a short delay.
+    // This implements the required Boot -> Start -> Battle flow.
+    this.scene.add('BattleScene', BattleScene, false)
 
-    const subtitle = this.add.text(width / 2, height / 2 - 80, 'Playable Prototype', {
-      fontSize: '28px',
-      color: '#cccccc'
-    }).setOrigin(0.5)
-
-    const startBtn = this.add.rectangle(width / 2, height / 2 + 40, 420, 90, 0x00aa00).setInteractive({ useHandCursor: true })
-    const startText = this.add.text(startBtn.x, startBtn.y, 'Start Battle', { fontSize: '36px', color: '#ffffff' }).setOrigin(0.5)
-
-    startBtn.on('pointerdown', () => {
-      // Navigate to BattleScene. Scene switching should be simple and explicit.
+    this.time.delayedCall(600, () => {
       this.scene.start('BattleScene')
     })
   }

@@ -1,24 +1,14 @@
 import Phaser from 'phaser'
 import BootScene from './scenes/BootScene'
-import StartScene from './scenes/StartScene'
-import BattleScene from './scenes/BattleScene'
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 1920,
-  height: 1080,
-  backgroundColor: '#000000',
-  scale: {
-    mode: Phaser.Scale.NONE,
-    width: 1920,
-    height: 1080,
-    autoCenter: Phaser.Scale.CENTER_BOTH
-  },
-  scene: [BootScene, StartScene, BattleScene],
-  parent: 'app'
+  width: 1280,
+  height: 720,
+  backgroundColor: '#0b0b0b',
+  parent: 'app',
+  scene: [BootScene]
 }
 
-window.addEventListener('load', () => {
-  const game = new Phaser.Game(config)
-  ;(window as any).game = game
-})
+// Entry point: create the Phaser game instance and start with BootScene.
+new Phaser.Game(config)

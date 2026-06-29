@@ -1,12 +1,9 @@
-// BattleSystem stub
-// Responsible for coordinating the battle flow. This is intentionally
-// empty now — it will own references to entities, manage phases, and
-// emit events for UI to consume.
+// Systems folder: contains game system skeletons (no gameplay logic yet).
+// These classes will hold the core game systems and will be instantiated
+// and orchestrated by higher-level controllers in future development.
 
 export default class BattleSystem {
   constructor() {
-    // Initialize internal state here
+    // TODO: initialize battle runtime state
   }
-
-  // Future: startBattle(), endBattle(), enqueueAction(), update(delta)
 }

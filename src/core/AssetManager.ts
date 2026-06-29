@@ -1,16 +1,13 @@
-import Phaser from 'phaser'
-
-// AssetManager: curated list of assets and a single loadAll(scene) entry
-// point. Keep it small and explicit; add new assets here as the project
-// grows. For now we avoid loading non-existent files so the dev server
-// doesn't return 404s during development.
+// AssetManager: placeholder for centralized asset loading.
+// Responsibilities in future:
+// - preload images, spritesheets, audio
+// - provide cached references
 
 export default class AssetManager {
-  // TODO: populate lists with real assets and implement preloading groups
-  static loadAll(scene: Phaser.Scene) {
-    // Example (commented):
-    // scene.load.image('player', '/assets/images/player.png')
+  private constructor() {}
 
-    // No-op for now to keep the loader quiet.
+  static async load(scene: Phaser.Scene): Promise<void> {
+    // TODO: use scene.load to queue assets and return when complete
+    return Promise.resolve()
   }
 }

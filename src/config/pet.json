@@ -1,0 +1,10 @@
+[
+  {
+    "id": "p001",
+    "name": "Sparkpaw",
+    "element": "electric",
+    "attack": 5,
+    "targetCount": 1,
+    "sprite": "sparkpaw.png"
+  }
+]

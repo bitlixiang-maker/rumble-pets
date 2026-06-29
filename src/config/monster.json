@@ -1,0 +1,11 @@
+[
+  {
+    "id": "m001",
+    "name": "Frostbite",
+    "hp": 18,
+    "attack": 4,
+    "weakness": "fire",
+    "rewardCoin": 6,
+    "sprite": "frostbite.png"
+  }
+]

@@ -1,0 +1,17 @@
+# Node
+node_modules/
+
+# Build
+dist/
+
+# Vite
+.env
+
+# Mac
+.DS_Store
+
+# Logs
+npm-debug.log*
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

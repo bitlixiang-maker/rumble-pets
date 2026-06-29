@@ -1,10 +1,12 @@
 [
   {
-    "id": "p001",
+    "id": 1,
     "name": "Sparkpaw",
     "element": "electric",
     "attack": 5,
     "targetCount": 1,
+    "rarity": 3,
+    "cost": 30,
     "sprite": "sparkpaw.png"
   }
 ]

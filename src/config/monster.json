@@ -1,8 +1,9 @@
 [
   {
-    "id": "m001",
+    "id": 1,
     "name": "Frostbite",
     "hp": 18,
+    "maxHP": 18,
     "attack": 4,
     "weakness": "fire",
     "rewardCoin": 6,

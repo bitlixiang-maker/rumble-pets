@@ -1,13 +1,10 @@
-// Player data structure
-// Lightweight shape for player-related data. Contains only plain data fields.
+// Player data structure (ID is number)
+// Only basic player attributes are stored here (no pet/egg ownership lists).
 export interface Player {
-  id: string
-  name: string
+  id: number
+  name?: string
   hp: number
   coins: number
-  // references to owned pets/eggs by ID
-  petIds: string[]
-  eggIds: string[]
-  // optional: player-specific limits (sourced from game config)
+  // optional per-player limits (sourced from game config)
   maxEggSlots?: number
 }

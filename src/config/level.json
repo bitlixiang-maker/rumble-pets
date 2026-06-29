@@ -1,9 +1,9 @@
 [
   {
-    "id": "l001",
-    "monsterPool": ["m001"],
+    "id": 1,
+    "monsterPool": [1],
     "monsterWeights": [100],
-    "eggPool": ["e001"],
+    "eggPool": [1],
     "eggWeights": [100]
   }
 ]

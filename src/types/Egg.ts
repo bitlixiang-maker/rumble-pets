@@ -1,8 +1,8 @@
-// Egg data structure
+// Egg data structure (ID is number)
 // Mirrors src/config/egg.json
 export interface Egg {
-  id: string
+  id: number
   cost: number
-  possiblePets: string[]
+  possiblePets: number[]
   weights: number[]
 }

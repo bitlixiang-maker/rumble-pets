@@ -1,31 +1,24 @@
 // ConfigManager: loads JSON config files at runtime and provides typed accessors.
-// Responsibilities:
-// - Load all JSON files from /src/config
-// - Provide getters: getGameConfig(), getMonster(id), getPet(id), getEgg(id), getLevel(id)
+// Updated to use numeric IDs (Map<number, ...>) and new typed interfaces.
 
-import { GameConfig as GConfigType, Monster, Pet, Egg, Level } from '../types'
-
-type RawMonster = Monster
+import { GameConfig, Monster, Pet, Egg, Level } from '../types'
 
 export default class ConfigManager {
-  private static game: GConfigType | null = null
-  private static monsters: Map<string, Monster> = new Map()
-  private static pets: Map<string, Pet> = new Map()
-  private static eggs: Map<string, Egg> = new Map()
-  private static levels: Map<string, Level> = new Map()
+  private static game: GameConfig | null = null
+  private static monsters: Map<number, Monster> = new Map()
+  private static pets: Map<number, Pet> = new Map()
+  private static eggs: Map<number, Egg> = new Map()
+  private static levels: Map<number, Level> = new Map()
 
   // Initialize with an optional pre-loaded game config object.
-  // This method will fetch the remaining JSON files from the config folder.
-  // Use (window as any).fetch to avoid depending on DOM libs for TypeScript.
   static async initialize(preloadedGameConfig?: any): Promise<void> {
     if (preloadedGameConfig) {
-      ConfigManager.game = preloadedGameConfig as GConfigType
+      ConfigManager.game = preloadedGameConfig as GameConfig
     } else {
       const g = await ConfigManager.fetchJson('/src/config/game.json')
-      ConfigManager.game = g as GConfigType
+      ConfigManager.game = g as GameConfig
     }
 
-    // Load other config files in parallel
     const [monsters, pets, eggs, levels] = await Promise.all([
       ConfigManager.fetchJson('/src/config/monster.json'),
       ConfigManager.fetchJson('/src/config/pet.json'),
@@ -33,25 +26,31 @@ export default class ConfigManager {
       ConfigManager.fetchJson('/src/config/level.json')
     ])
 
-    // Populate maps with typed objects
     if (Array.isArray(monsters)) {
-      for (const m of monsters as RawMonster[]) ConfigManager.monsters.set(m.id, m)
+      for (const m of monsters as Monster[]) {
+        if (typeof m.id === 'number') ConfigManager.monsters.set(m.id, m)
+      }
     }
 
     if (Array.isArray(pets)) {
-      for (const p of (pets as Pet[])) ConfigManager.pets.set(p.id, p)
+      for (const p of pets as Pet[]) {
+        if (typeof p.id === 'number') ConfigManager.pets.set(p.id, p)
+      }
     }
 
     if (Array.isArray(eggs)) {
-      for (const e of (eggs as Egg[])) ConfigManager.eggs.set(e.id, e)
+      for (const e of eggs as Egg[]) {
+        if (typeof e.id === 'number') ConfigManager.eggs.set(e.id, e)
+      }
     }
 
     if (Array.isArray(levels)) {
-      for (const l of (levels as Level[])) ConfigManager.levels.set(l.id, l)
+      for (const l of levels as Level[]) {
+        if (typeof l.id === 'number') ConfigManager.levels.set(l.id, l)
+      }
     }
   }
 
-  // Helper to fetch and parse JSON with a safe fallback.
   private static async fetchJson(path: string): Promise<any> {
     try {
       const resp = await (window as any).fetch(path)
@@ -66,24 +65,23 @@ export default class ConfigManager {
     }
   }
 
-  // Typed accessors
-  static getGameConfig(): GConfigType | null {
+  static getGameConfig(): GameConfig | null {
     return ConfigManager.game
   }
 
-  static getMonster(id: string): Monster | undefined {
+  static getMonster(id: number): Monster | undefined {
     return ConfigManager.monsters.get(id)
   }
 
-  static getPet(id: string): Pet | undefined {
+  static getPet(id: number): Pet | undefined {
     return ConfigManager.pets.get(id)
   }
 
-  static getEgg(id: string): Egg | undefined {
+  static getEgg(id: number): Egg | undefined {
     return ConfigManager.eggs.get(id)
   }
 
-  static getLevel(id: string): Level | undefined {
+  static getLevel(id: number): Level | undefined {
     return ConfigManager.levels.get(id)
   }
 }

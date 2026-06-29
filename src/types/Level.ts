@@ -1,9 +1,9 @@
-// Level data structure
+// Level data structure (ID is number)
 // Mirrors src/config/level.json
 export interface Level {
-  id: string
-  monsterPool: string[]
+  id: number
+  monsterPool: number[]
   monsterWeights: number[]
-  eggPool: string[]
+  eggPool: number[]
   eggWeights: number[]
 }

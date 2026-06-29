@@ -1,8 +1,8 @@
 [
   {
-    "id": "e001",
+    "id": 1,
     "cost": 50,
-    "possiblePets": ["p001"],
+    "possiblePets": [1],
     "weights": [100]
   }
 ]

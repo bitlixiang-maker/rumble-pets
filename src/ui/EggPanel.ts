@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { PANEL_SIZES, RADIUS, COLORS, FONT_SIZES, EGG_SLOT } from './UIConstants'
+import { PANEL_SIZES, RADIUS, COLORS, FONT_SIZES, EGG_SLOT, MARGIN } from './UIConstants'
 
 export default class EggPanel extends Phaser.GameObjects.Container {
   private gfx: Phaser.GameObjects.Graphics

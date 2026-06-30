@@ -10,8 +10,11 @@ import ConfigManager from '../core/ConfigManager'
 import { Monster, Pet, Player } from '../types'
 
 // BattleScene: data-driven visual prototype with simple automated battle.
+// NOTE: battle runtime state is a copy of configuration data. ConfigManager
+// values are treated as immutable.
 export default class BattleScene extends Phaser.Scene {
-  private monsters: Monster[] = []
+  private configMonsters: Monster[] = [] // original copies from ConfigManager (immutable)
+  private battleMonsters: Monster[] = [] // runtime mutable copies used during battle
   private pets: Pet[] = []
   private player!: Player
   private logs: string[] = []
@@ -29,8 +32,11 @@ export default class BattleScene extends Phaser.Scene {
     // Load current level via ConfigManager (no direct JSON access)
     const level = ConfigManager.getLevel(1)
 
-    // Load monsters from level.monsterPool
-    this.monsters = ConfigManager.getMonsters(level.monsterPool)
+    // Load monsters from level.monsterPool (immutable config objects)
+    this.configMonsters = ConfigManager.getMonsters(level.monsterPool)
+
+    // Create a runtime copy used for battle so we never mutate ConfigManager data
+    this.battleMonsters = this.configMonsters.map(m => ({ ...m, hp: m.hp ?? m.maxHp }))
 
     // Load player information
     this.player = ConfigManager.getPlayer()
@@ -69,8 +75,8 @@ export default class BattleScene extends Phaser.Scene {
     const btn = new PrimaryButton(this, btnRect, 'START BATTLE')
     this.add.existing(btn).setPosition(btnRect.x + btnRect.width / 2, btnRect.y + btnRect.height / 2)
 
-    // Initial UI refresh from configuration data
-    enemies.refresh(this.monsters)
+    // Initial UI refresh from configuration/runtime copies
+    enemies.refresh(this.battleMonsters)
     eggsPanel.refresh(eggs)
     players.refresh(this.player, this.pets)
     top.refresh(this.player)
@@ -81,42 +87,46 @@ export default class BattleScene extends Phaser.Scene {
     btn.on('pressed', () => this.startBattle(enemies, log, btn))
   }
 
+  // Start the automatic battle loop. Creates a Phaser timer that calls performAttack every 1000ms.
   private startBattle(enemies: EnemyPanel, logPanel: BattleLogPanel, btn: PrimaryButton): void {
+    // Ensure we use a fresh runtime copy so config remains immutable
+    this.battleMonsters = this.configMonsters.map(m => ({ ...m, hp: m.hp ?? m.maxHp }))
+    this.petIndex = 0
+    this.logs = []
+
     // Disable button and set label
     btn.refresh({ label: 'FIGHTING...', disabled: true })
 
     // Add initial log entry
     this.appendLog('Battle Started')
+    logPanel.refresh(this.logs)
 
     // Start timed attack loop (1000ms)
     this.attackTimer = this.time.addEvent({
       delay: 1000,
       loop: true,
-      callback: () => this.attackTick(enemies, logPanel, btn),
+      callback: () => this.performAttack(enemies, logPanel, btn),
       callbackScope: this
     })
   }
 
-  private attackTick(enemies: EnemyPanel, logPanel: BattleLogPanel, btn: PrimaryButton): void {
-    // Find next pet that will attack
+  // performAttack: called every tick, performs a single pet attack
+  private performAttack(enemies: EnemyPanel, logPanel: BattleLogPanel, btn: PrimaryButton): void {
     if (this.pets.length === 0) return
     const pet = this.pets[this.petIndex]
 
-    // Find first alive monster
-    const target = this.monsters.find(m => (m.hp ?? 0) > 0)
+    const target = this.findNextAliveMonster()
     if (!target) {
-      // All monsters defeated
       this.finishBattle(enemies, logPanel, btn)
       return
     }
 
-    // Perform attack: damage = pet.atk
     const damage = pet.atk
+    // mutate runtime battle copy only
     target.hp = Math.max(0, (target.hp ?? target.maxHp) - damage)
 
-    // Log attack
+    // Logging
     this.appendLog(`${pet.name} attacks ${target.name}`)
-
     if ((target.hp ?? 0) <= 0) {
       this.appendLog(`${target.name} defeated`)
     } else {
@@ -124,37 +134,40 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     // Refresh UI immediately
-    enemies.refresh(this.monsters)
+    enemies.refresh(this.battleMonsters)
     logPanel.refresh(this.logs)
 
-    // Advance pet index
+    // Advance pet index for round-robin
     this.petIndex = (this.petIndex + 1) % this.pets.length
 
-    // If after attack no alive monsters, finish
-    if (!this.monsters.some(m => (m.hp ?? 0) > 0)) {
+    // Check end condition
+    if (!this.battleMonsters.some(m => (m.hp ?? 0) > 0)) {
       this.finishBattle(enemies, logPanel, btn)
     }
   }
 
-  private appendLog(message: string): void {
-    this.logs.push(message)
-    // keep only the latest 8 messages
-    while (this.logs.length > 8) this.logs.shift()
+  // findNextAliveMonster: returns the first alive monster from the runtime battle copy
+  private findNextAliveMonster(): Monster | undefined {
+    return this.battleMonsters.find(m => (m.hp ?? 0) > 0)
   }
 
+  // finishBattle: stops timer, updates UI and logs, updates button label
   private finishBattle(enemies: EnemyPanel, logPanel: BattleLogPanel, btn: PrimaryButton): void {
-    // Stop timer
     if (this.attackTimer) {
       this.attackTimer.remove(false)
       this.attackTimer = undefined
     }
 
-    // Final refresh
-    enemies.refresh(this.monsters)
+    enemies.refresh(this.battleMonsters)
     this.appendLog('Battle Finished')
     logPanel.refresh(this.logs)
 
-    // Update button
     btn.refresh({ label: 'VICTORY', disabled: true })
+  }
+
+  // appendLog keeps the newest messages at the end and limits to 8 entries
+  private appendLog(message: string): void {
+    this.logs.push(message)
+    while (this.logs.length > 8) this.logs.shift()
   }
 }

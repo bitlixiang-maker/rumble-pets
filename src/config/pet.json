@@ -1,12 +1,7 @@
-[
-  {
-    "id": 1,
-    "name": "Sparkpaw",
-    "element": "electric",
-    "attack": 5,
-    "targetCount": 1,
-    "rarity": 3,
-    "cost": 30,
-    "sprite": "sparkpaw.png"
-  }
-]
+{
+  "pets": [
+    { "id": "p1", "name": "Cat", "atk": 10, "targetCount": 1, "rarity": "common" },
+    { "id": "p2", "name": "Dog", "atk": 8, "targetCount": 2, "rarity": "common" },
+    { "id": "p3", "name": "Monkey", "atk": 15, "targetCount": 1, "rarity": "rare" }
+  ]
+}

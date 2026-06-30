@@ -1,11 +1,5 @@
 {
-  "title": "Rumble Pets",
-  "startHP": 30,
-  "startCoin": 100,
-  "maxEggSlots": 3,
-  "version": "0.1.0",
-  "resolution": {
-    "width": 1920,
-    "height": 1080
-  }
+  "player": { "id": "player1", "coin": 500 },
+  "currentLevel": 1,
+  "timer": "00:00"
 }

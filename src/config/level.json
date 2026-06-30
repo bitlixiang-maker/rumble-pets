@@ -1,9 +1,11 @@
-[
-  {
-    "id": 1,
-    "monsterPool": [1],
-    "monsterWeights": [100],
-    "eggPool": [1],
-    "eggWeights": [100]
-  }
-]
+{
+  "levels": [
+    {
+      "id": 1,
+      "level": 1,
+      "wave": 1,
+      "waveCount": 10,
+      "monsterPool": ["m1", "m2", "m3"]
+    }
+  ]
+}

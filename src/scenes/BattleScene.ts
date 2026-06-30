@@ -6,18 +6,35 @@ import EggPanel from '../ui/EggPanel'
 import PlayerPanel from '../ui/PlayerPanel'
 import BattleLogPanel from '../ui/BattleLogPanel'
 import PrimaryButton from '../ui/PrimaryButton'
+import ConfigManager from '../core/ConfigManager'
 
-// BattleScene: visual prototype only. Uses LayoutManager for all positions.
+// BattleScene: fully data-driven visual prototype.
 export default class BattleScene extends Phaser.Scene {
   constructor() {
     super({ key: 'BattleScene' })
   }
 
-  create(): void {
-    // Initialize layout system so LayoutManager computes rectangles for this resolution
-    LayoutManager.initialize(this.scale.width, this.scale.height)
+  async create(): Promise<void> {
+    // Ensure configuration is loaded
+    await ConfigManager.initialize()
 
-    // Acquire rectangles for each UI block
+    // Load current level via ConfigManager (no direct JSON access)
+    const level = ConfigManager.getLevel(1)
+
+    // Load monsters from level.monsterPool
+    const monsters = ConfigManager.getMonsters(level.monsterPool)
+
+    // Load player information
+    const player = ConfigManager.getPlayer()
+
+    // Load pet information
+    const pets = ConfigManager.getPets()
+
+    // Load egg information
+    const eggs = ConfigManager.getEggs()
+
+    // Initialize layout
+    LayoutManager.initialize(this.scale.width, this.scale.height)
     const topRect = LayoutManager.getTopHUDRect()
     const enemyRect = LayoutManager.getEnemyPanelRect()
     const eggRect = LayoutManager.getEggPanelRect()
@@ -25,7 +42,7 @@ export default class BattleScene extends Phaser.Scene {
     const logRect = LayoutManager.getBattleLogRect()
     const btnRect = LayoutManager.getPrimaryButtonRect()
 
-    // Create containers using rectangles from LayoutManager
+    // Create containers and position them using rectangles from LayoutManager
     const top = new TopHUD(this, topRect)
     this.add.existing(top).setPosition(topRect.x, topRect.y)
 
@@ -35,8 +52,8 @@ export default class BattleScene extends Phaser.Scene {
     const log = new BattleLogPanel(this, logRect)
     this.add.existing(log).setPosition(logRect.x, logRect.y)
 
-    const eggs = new EggPanel(this, eggRect)
-    this.add.existing(eggs).setPosition(eggRect.x, eggRect.y)
+    const eggsPanel = new EggPanel(this, eggRect)
+    this.add.existing(eggsPanel).setPosition(eggRect.x, eggRect.y)
 
     const players = new PlayerPanel(this, playerRect)
     this.add.existing(players).setPosition(playerRect.x, playerRect.y)
@@ -44,29 +61,12 @@ export default class BattleScene extends Phaser.Scene {
     const btn = new PrimaryButton(this, btnRect, 'START BATTLE')
     this.add.existing(btn).setPosition(btnRect.x + btnRect.width / 2, btnRect.y + btnRect.height / 2)
 
-    // Provide fake sample data to each panel via refresh(data)
-    top.refresh({ coin: 500, wave: '1/10', timer: '00:00' })
-
-    enemies.refresh({
-      monsters: [
-        { name: 'Zombie', hp: 100, maxHp: 100 },
-        { name: 'Skeleton', hp: 60, maxHp: 80 },
-        { name: 'Ghoul', hp: 30, maxHp: 50 }
-      ]
-    })
-
-    log.refresh({ logs: ['Battle Start!', 'Enemy appeared.', 'Waiting...'] })
-
-    eggs.refresh({ eggs: Array.from({ length: 10 }, (_, i) => `Egg ${i + 1}`) })
-
-    players.refresh({
-      pets: [
-        { name: 'Cat', atk: 10, target: 'x1' },
-        { name: 'Dog', atk: 8, target: 'x2' },
-        { name: 'Monkey', atk: 15, target: 'x1' }
-      ]
-    })
-
+    // Pass data into UI Panels (no inline objects; data comes from ConfigManager)
+    enemies.refresh(monsters)
+    eggsPanel.refresh(eggs)
+    players.refresh(player, pets)
+    top.refresh(player)
+    log.refresh([])
     btn.refresh({})
   }
 }

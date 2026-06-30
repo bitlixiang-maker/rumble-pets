@@ -1,12 +1,8 @@
-[
-  {
-    "id": 1,
-    "name": "Frostbite",
-    "hp": 18,
-    "maxHP": 18,
-    "attack": 4,
-    "weakness": "fire",
-    "rewardCoin": 6,
-    "sprite": "frostbite.png"
-  }
-]
+{
+  "monsters": [
+    { "id": "m1", "name": "Zombie", "maxHp": 100 },
+    { "id": "m2", "name": "Skeleton", "maxHp": 80 },
+    { "id": "m3", "name": "Ghoul", "maxHp": 50 },
+    { "id": "m4", "name": "Wraith", "maxHp": 120 }
+  ]
+}

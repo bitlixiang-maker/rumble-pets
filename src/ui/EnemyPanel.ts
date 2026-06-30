@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { FONT_SIZES, COLORS } from './UIConstants'
+import { Monster } from '../types'
 
 export default class EnemyPanel extends Phaser.GameObjects.Container {
   private bg: Phaser.GameObjects.Graphics
@@ -45,11 +46,9 @@ export default class EnemyPanel extends Phaser.GameObjects.Container {
       m.name.setX(0)
       m.name.setY(0)
 
-      // hp bar
+      // hp bar background
       m.hpBar.clear()
       m.hpBar.fillStyle(0x333333, 1)
-      m.hpBar.fillRoundedRect(0, 28, 200, 18, 6)
-      m.hpBar.fillStyle(0x44cc44, 1)
       m.hpBar.fillRoundedRect(0, 28, 200, 18, 6)
 
       m.hpText.setX(0)
@@ -57,22 +56,28 @@ export default class EnemyPanel extends Phaser.GameObjects.Container {
     }
   }
 
-  refresh(data: { monsters: { name: string; hp: number; maxHp: number }[] }) {
-    const monsters = data.monsters ?? []
+  // Accepts array of Monster objects and updates visuals immediately.
+  refresh(monsters: Monster[]): void {
     for (let i = 0; i < 3; i++) {
-      const src = monsters[i] ?? { name: `Enemy ${i + 1}`, hp: 0, maxHp: 0 }
+      const src = monsters[i] ?? { id: `m${i + 1}`, name: `Enemy ${i + 1}`, hp: 0, maxHp: 0 }
       const m = this.monsters[i]
       m.name.setText(src.name)
 
-      // draw hp proportionally
-      const pct = src.maxHp > 0 ? src.hp / src.maxHp : 0
-      m.hpBar.clear()
-      m.hpBar.fillStyle(0x333333, 1)
-      m.hpBar.fillRoundedRect(0, 28, 200, 18, 6)
-      m.hpBar.fillStyle(0x44cc44, 1)
-      m.hpBar.fillRoundedRect(0, 28, Math.max(0, Math.floor(200 * pct)), 18, 6)
-
-      m.hpText.setText(`${src.hp}/${src.maxHp}`)
+      // If defeated, display DEFEATED and grey bar
+      if ((src.hp ?? 0) <= 0) {
+        m.hpBar.clear()
+        m.hpBar.fillStyle(0x222222, 1)
+        m.hpBar.fillRoundedRect(0, 28, 200, 18, 6)
+        m.hpText.setText('DEFEATED')
+      } else {
+        const pct = src.maxHp > 0 ? (src.hp ?? 0) / src.maxHp : 0
+        m.hpBar.clear()
+        m.hpBar.fillStyle(0x333333, 1)
+        m.hpBar.fillRoundedRect(0, 28, 200, 18, 6)
+        m.hpBar.fillStyle(0x44cc44, 1)
+        m.hpBar.fillRoundedRect(0, 28, Math.max(0, Math.floor(200 * pct)), 18, 6)
+        m.hpText.setText(`${src.hp}/${src.maxHp} (${Math.floor(pct * 100)}%)`)
+      }
     }
   }
 }

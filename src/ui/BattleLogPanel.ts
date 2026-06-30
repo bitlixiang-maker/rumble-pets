@@ -23,10 +23,12 @@ export default class BattleLogPanel extends Phaser.GameObjects.Container {
     this.bg.strokeRoundedRect(0, 0, this.rect.width, this.rect.height, 8)
   }
 
-  refresh(data: { logs: string[] }) {
-    const logs = data.logs ?? []
-    // newest should appear at bottom; show in order with line breaks
-    this.text.setText(logs.join('\n'))
+  // Accepts an array of strings. Newest message should be at the bottom.
+  // Keeps messages limited to latest 8 entries.
+  refresh(data: string[]): void {
+    const logs = data ?? []
+    const recent = logs.slice(-8)
+    this.text.setText(recent.join('\n'))
     // align text at bottom by adjusting y
     this.text.setY(this.rect.height - this.text.height - 12)
   }

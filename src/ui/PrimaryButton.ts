@@ -1,25 +1,31 @@
 import Phaser from 'phaser'
-import { PANEL_SIZES, RADIUS, COLORS, FONT_SIZES } from './UIConstants'
+import { FONT_SIZES, COLORS } from './UIConstants'
 
 export default class PrimaryButton extends Phaser.GameObjects.Container {
-  private gfx: Phaser.GameObjects.Graphics
+  private bg: Phaser.GameObjects.Graphics
   private label: Phaser.GameObjects.Text
+  private rect: Phaser.Geom.Rectangle
 
-  constructor(scene: Phaser.Scene, x: number, y: number, text: string) {
-    super(scene, x, y)
-    this.gfx = scene.add.graphics()
+  constructor(scene: Phaser.Scene, rect: Phaser.Geom.Rectangle, text: string) {
+    super(scene, 0, 0)
+    this.rect = rect
+    this.bg = scene.add.graphics()
     this.label = scene.add.text(0, 0, text, { fontSize: `${FONT_SIZES.normal}px`, color: COLORS.text }).setOrigin(0.5)
-
-    this.add([this.gfx, this.label])
-    this.refresh()
+    this.add([this.bg, this.label])
+    this.draw()
   }
 
-  refresh(): void {
-    const w = PANEL_SIZES.buttonWidth
-    const h = PANEL_SIZES.buttonHeight
+  private draw(): void {
+    this.bg.clear()
+    const w = this.rect.width
+    const h = this.rect.height
+    this.bg.fillStyle(0xff8c00, 1)
+    this.bg.fillRoundedRect(-w / 2, -h / 2, w, h, 12)
+    this.bg.lineStyle(2, 0x666666, 1)
+    this.bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 12)
+  }
 
-    this.gfx.clear()
-    this.gfx.fillStyle(COLORS.accent, 1)
-    this.gfx.fillRoundedRect(-w / 2, -h / 2, w, h, RADIUS)
+  refresh(_data: unknown) {
+    // placeholder for future interaction state
   }
 }

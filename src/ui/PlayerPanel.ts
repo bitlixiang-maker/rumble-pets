@@ -1,49 +1,61 @@
 import Phaser from 'phaser'
-import { PANEL_SIZES, MARGIN, RADIUS, COLORS, FONT_SIZES } from './UIConstants'
+import { FONT_SIZES, COLORS } from './UIConstants'
 
 export default class PlayerPanel extends Phaser.GameObjects.Container {
-  private gfx: Phaser.GameObjects.Graphics
-  private hpBg: Phaser.GameObjects.Graphics
-  private hpFill: Phaser.GameObjects.Graphics
-  private hpText: Phaser.GameObjects.Text
+  private bg: Phaser.GameObjects.Graphics
+  private pets: { container: Phaser.GameObjects.Container; name: Phaser.GameObjects.Text; atk: Phaser.GameObjects.Text; target: Phaser.GameObjects.Text }[] = []
+  private rect: Phaser.Geom.Rectangle
 
-  constructor(scene: Phaser.Scene, x: number, y: number, width: number) {
-    super(scene, x, y)
-    this.gfx = scene.add.graphics()
-    this.hpBg = scene.add.graphics()
-    this.hpFill = scene.add.graphics()
-    this.hpText = scene.add.text(0, 0, 'HP', { fontSize: `${FONT_SIZES.normal}px`, color: COLORS.text })
+  constructor(scene: Phaser.Scene, rect: Phaser.Geom.Rectangle) {
+    super(scene, 0, 0)
+    this.rect = rect
+    this.bg = scene.add.graphics()
+    this.add(this.bg)
 
-    this.add([this.gfx, this.hpBg, this.hpFill, this.hpText])
-    this.refresh()
+    for (let i = 0; i < 3; i++) {
+      const c = scene.add.container(0, 0)
+      const name = scene.add.text(0, 0, `Pet ${i + 1}`, { fontSize: `${FONT_SIZES.normal}px`, color: COLORS.text })
+      const atk = scene.add.text(0, 0, `ATK 0`, { fontSize: `${FONT_SIZES.small}px`, color: COLORS.text })
+      const target = scene.add.text(0, 0, `Target x0`, { fontSize: `${FONT_SIZES.small}px`, color: COLORS.text })
+      c.add([name, atk, target])
+      this.pets.push({ container: c, name, atk, target })
+      this.add(c)
+    }
+
+    this.draw()
   }
 
-  refresh(data?: { hpPercent?: number }): void {
-    const scene = this.scene
-    const width = scene.scale.width
-    const height = PANEL_SIZES.playerPanelHeight
+  private draw(): void {
+    this.bg.clear()
+    this.bg.fillStyle(0x2b2b2b, 1)
+    this.bg.fillRoundedRect(0, 0, this.rect.width, this.rect.height, 8)
+    this.bg.lineStyle(2, 0x666666, 1)
+    this.bg.strokeRoundedRect(0, 0, this.rect.width, this.rect.height, 8)
 
-    this.gfx.clear()
-    this.gfx.fillStyle(COLORS.panelBg, 1)
-    this.gfx.fillRoundedRect(0, 0, width, height, RADIUS)
+    const slotWidth = Math.floor(this.rect.width / 3)
+    const cy = Math.floor(this.rect.height / 2)
 
-    const barX = MARGIN
-    const barY = height / 2 - 16
-    const barW = Math.min(800, width - 2 * MARGIN)
-    const barH = 32
+    for (let i = 0; i < 3; i++) {
+      const p = this.pets[i]
+      const slotX = i * slotWidth + Math.floor((slotWidth - 200) / 2)
+      p.container.setPosition(slotX, cy - 30)
+      p.name.setX(0)
+      p.name.setY(0)
+      p.atk.setX(0)
+      p.atk.setY(28)
+      p.target.setX(0)
+      p.target.setY(48)
+    }
+  }
 
-    const hpPercent = data?.hpPercent ?? 1
-
-    this.hpBg.clear()
-    this.hpBg.fillStyle(0x333333, 1)
-    this.hpBg.fillRoundedRect(barX, barY, barW, barH, 8)
-
-    this.hpFill.clear()
-    this.hpFill.fillStyle(0x44cc44, 1)
-    this.hpFill.fillRoundedRect(barX, barY, barW * hpPercent, barH, 8)
-
-    this.hpText.setText(`HP`)
-    this.hpText.setX(barX + barW + 12)
-    this.hpText.setY(barY + barH / 2 - this.hpText.height / 2)
+  refresh(data: { pets: { name: string; atk: number; target: string }[] }) {
+    const pets = data.pets ?? []
+    for (let i = 0; i < 3; i++) {
+      const src = pets[i] ?? { name: `Pet ${i + 1}`, atk: 0, target: 'x0' }
+      const p = this.pets[i]
+      p.name.setText(src.name)
+      p.atk.setText(`ATK ${src.atk}`)
+      p.target.setText(`Target ${src.target}`)
+    }
   }
 }

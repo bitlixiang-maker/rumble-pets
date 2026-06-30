@@ -1,40 +1,33 @@
 import Phaser from 'phaser'
-import { PANEL_SIZES, RADIUS, COLORS, FONT_SIZES } from './UIConstants'
-
-export interface BattleLogItem {
-  timestamp: string
-  message: string
-}
+import { FONT_SIZES, COLORS } from './UIConstants'
 
 export default class BattleLogPanel extends Phaser.GameObjects.Container {
-  private gfx: Phaser.GameObjects.Graphics
+  private bg: Phaser.GameObjects.Graphics
   private text: Phaser.GameObjects.Text
+  private rect: Phaser.Geom.Rectangle
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y)
-    this.gfx = scene.add.graphics()
-    this.text = scene.add.text(0, 0, '', { fontSize: `${FONT_SIZES.small}px`, color: COLORS.textMuted })
-
-    this.add([this.gfx, this.text])
-    this.refresh()
+  constructor(scene: Phaser.Scene, rect: Phaser.Geom.Rectangle) {
+    super(scene, 0, 0)
+    this.rect = rect
+    this.bg = scene.add.graphics()
+    this.text = scene.add.text(12, 12, '', { fontSize: `${FONT_SIZES.small}px`, color: COLORS.text })
+    this.add([this.bg, this.text])
+    this.draw()
   }
 
-  refresh(data?: { logs?: BattleLogItem[] }): void {
-    const width = PANEL_SIZES.logPanelWidth
-    const height = PANEL_SIZES.logPanelHeight
+  private draw(): void {
+    this.bg.clear()
+    this.bg.fillStyle(0x2b2b2b, 1)
+    this.bg.fillRoundedRect(0, 0, this.rect.width, this.rect.height, 8)
+    this.bg.lineStyle(2, 0x666666, 1)
+    this.bg.strokeRoundedRect(0, 0, this.rect.width, this.rect.height, 8)
+  }
 
-    this.gfx.clear()
-    this.gfx.fillStyle(COLORS.panelAlt, 1)
-    this.gfx.fillRoundedRect(0, 0, width, height, RADIUS)
-
-    const logs = data?.logs ?? [
-      { timestamp: new Date().toISOString(), message: 'Battle Log' },
-      { timestamp: new Date().toISOString(), message: 'Battle initialized' },
-      { timestamp: new Date().toISOString(), message: 'Player ready' }
-    ]
-
-    this.text.setText(logs.map(l => l.message).join('\n'))
-    this.text.setX(12)
-    this.text.setY(12)
+  refresh(data: { logs: string[] }) {
+    const logs = data.logs ?? []
+    // newest should appear at bottom; show in order with line breaks
+    this.text.setText(logs.join('\n'))
+    // align text at bottom by adjusting y
+    this.text.setY(this.rect.height - this.text.height - 12)
   }
 }

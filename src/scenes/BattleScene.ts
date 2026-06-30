@@ -8,15 +8,17 @@ import BattleLogPanel from '../ui/BattleLogPanel'
 import PrimaryButton from '../ui/PrimaryButton'
 import ConfigManager from '../core/ConfigManager'
 import BattleSystem from '../core/BattleSystem'
+import MonsterSystem from '../core/MonsterSystem'
 import { Monster, Pet, Player } from '../types'
 
-// BattleScene: no battle logic here. Only subscribes to BattleSystem events
+// BattleScene: no battle logic here. Only subscribes to BattleSystem events and uses MonsterSystem.
 export default class BattleScene extends Phaser.Scene {
   private configMonsters: Monster[] = []
   private pets: Pet[] = []
   private player!: Player
   private logs: string[] = []
   private battleSystem!: BattleSystem
+  private monsterSystem!: MonsterSystem
 
   // UI references to refresh from events
   private enemies?: EnemyPanel
@@ -35,6 +37,10 @@ export default class BattleScene extends Phaser.Scene {
     this.player = ConfigManager.getPlayer()
     this.pets = ConfigManager.getPets()
     const eggs = ConfigManager.getEggs()
+
+    // Initialize MonsterSystem
+    this.monsterSystem = new MonsterSystem()
+    this.monsterSystem.initialize(this.configMonsters)
 
     // Initialize layout
     LayoutManager.initialize(this.scale.width, this.scale.height)
@@ -63,8 +69,8 @@ export default class BattleScene extends Phaser.Scene {
     this.btn = new PrimaryButton(this, btnRect, 'START BATTLE')
     this.add.existing(this.btn).setPosition(btnRect.x + btnRect.width / 2, btnRect.y + btnRect.height / 2)
 
-    // Initial UI
-    this.enemies.refresh(this.configMonsters)
+    // Initial UI: EnemyPanel should always use MonsterSystem.getAll()
+    this.enemies.refresh(this.monsterSystem.getAll())
     eggsPanel.refresh(eggs)
     players.refresh(this.player, this.pets)
     top.refresh(this.player)
@@ -74,22 +80,41 @@ export default class BattleScene extends Phaser.Scene {
     // Create BattleSystem (pure logic)
     this.battleSystem = new BattleSystem(1000)
 
-    // Subscribe to events
+    // Subscribe to BattleSystem events
     this.battleSystem.on('BattleStarted', () => {
       this.appendLog('Battle Started')
       this.logPanel?.refresh(this.logs)
       this.btn?.refresh({ label: 'FIGHTING...', disabled: true })
     })
 
-    this.battleSystem.on('BattleTick', (tickCount: number) => {
-      this.appendLog(`Tick ${tickCount}`)
-      this.logPanel?.refresh(this.logs)
+    this.battleSystem.on('BattleTick', (_tickCount: number) => {
+      // Forward tick to MonsterSystem; MonsterSystem owns all damage logic
+      this.monsterSystem.onBattleTick()
     })
 
+    // Only update button state on BattleFinished; MonsterSystem will emit AllMonsterDead and we handle logs there.
     this.battleSystem.on('BattleFinished', () => {
+      this.btn?.refresh({ label: 'VICTORY', disabled: true })
+    })
+
+    // Subscribe to MonsterSystem events to update logs and UI
+    this.monsterSystem.on('MonsterUpdated', (p: any) => {
+      this.appendLog(`${p.name} -${p.damage} HP`)
+      this.logPanel?.refresh(this.logs)
+      this.enemies?.refresh(this.monsterSystem.getAll())
+    })
+
+    this.monsterSystem.on('MonsterDead', (p: any) => {
+      this.appendLog(`${p.name} Dead`)
+      this.logPanel?.refresh(this.logs)
+      this.enemies?.refresh(this.monsterSystem.getAll())
+    })
+
+    this.monsterSystem.on('AllMonsterDead', () => {
       this.appendLog('Battle Finished')
       this.logPanel?.refresh(this.logs)
-      this.btn?.refresh({ label: 'VICTORY', disabled: true })
+      // stop the BattleSystem to cease ticks
+      this.battleSystem.stop()
     })
 
     // wire button to start the pure BattleSystem

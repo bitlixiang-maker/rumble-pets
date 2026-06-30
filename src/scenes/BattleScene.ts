@@ -9,16 +9,18 @@ import PrimaryButton from '../ui/PrimaryButton'
 import ConfigManager from '../core/ConfigManager'
 import BattleSystem from '../core/BattleSystem'
 import MonsterSystem from '../core/MonsterSystem'
+import PetSystem from '../core/PetSystem'
 import { Monster, Pet, Player } from '../types'
 
-// BattleScene: no battle logic here. Only subscribes to BattleSystem events and uses MonsterSystem.
+// BattleScene: composition root only. Forwards BattleTick to PetSystem and listens to PetAttack events.
 export default class BattleScene extends Phaser.Scene {
   private configMonsters: Monster[] = []
-  private pets: Pet[] = []
+  private petsConfig: Pet[] = []
   private player!: Player
   private logs: string[] = []
   private battleSystem!: BattleSystem
   private monsterSystem!: MonsterSystem
+  private petSystem!: PetSystem
 
   // UI references to refresh from events
   private enemies?: EnemyPanel
@@ -35,12 +37,16 @@ export default class BattleScene extends Phaser.Scene {
     const level = ConfigManager.getLevel(1)
     this.configMonsters = ConfigManager.getMonsters(level.monsterPool)
     this.player = ConfigManager.getPlayer()
-    this.pets = ConfigManager.getPets()
+    this.petsConfig = ConfigManager.getPets()
     const eggs = ConfigManager.getEggs()
 
     // Initialize MonsterSystem
     this.monsterSystem = new MonsterSystem()
     this.monsterSystem.initialize(this.configMonsters)
+
+    // Initialize PetSystem
+    this.petSystem = new PetSystem()
+    this.petSystem.initialize(this.petsConfig)
 
     // Initialize layout
     LayoutManager.initialize(this.scale.width, this.scale.height)
@@ -72,7 +78,7 @@ export default class BattleScene extends Phaser.Scene {
     // Initial UI: EnemyPanel should always use MonsterSystem.getAll()
     this.enemies.refresh(this.monsterSystem.getAll())
     eggsPanel.refresh(eggs)
-    players.refresh(this.player, this.pets)
+    players.refresh(this.player, this.petsConfig)
     top.refresh(this.player)
     this.logPanel.refresh([])
     this.btn.refresh({ label: 'START BATTLE', disabled: false })
@@ -80,7 +86,7 @@ export default class BattleScene extends Phaser.Scene {
     // Create BattleSystem (pure logic)
     this.battleSystem = new BattleSystem(1000)
 
-    // Subscribe to BattleSystem events
+    // Subscribe to BattleSystem events -> forward tick to PetSystem (composition root)
     this.battleSystem.on('BattleStarted', () => {
       this.appendLog('Battle Started')
       this.logPanel?.refresh(this.logs)
@@ -88,13 +94,27 @@ export default class BattleScene extends Phaser.Scene {
     })
 
     this.battleSystem.on('BattleTick', (_tickCount: number) => {
-      // Forward tick to MonsterSystem; MonsterSystem owns all damage logic
-      this.monsterSystem.onBattleTick()
+      // Scene forwards ticks to PetSystem only
+      this.petSystem.onBattleTick()
     })
 
-    // Only update button state on BattleFinished; MonsterSystem will emit AllMonsterDead and we handle logs there.
     this.battleSystem.on('BattleFinished', () => {
       this.btn?.refresh({ label: 'VICTORY', disabled: true })
+    })
+
+    // PetSystem emits PetAttack; Scene listens and forwards damage to MonsterSystem
+    this.petSystem.on('PetAttack', (p: any) => {
+      // Log attack (no damage calc here)
+      const pet = p.pet
+      const damage = p.damage
+      this.appendLog(`${pet.name} attacks`)
+      this.logPanel?.refresh(this.logs)
+
+      // Find first alive monster and apply damage via MonsterSystem
+      const firstAlive = this.monsterSystem.getAll().find(m => (m.hp ?? 0) > 0)
+      if (firstAlive) {
+        this.monsterSystem.damage(firstAlive.id, damage)
+      }
     })
 
     // Subscribe to MonsterSystem events to update logs and UI

@@ -1,9 +1,9 @@
 // MonsterSystem: pure logic owning monster runtime state during battle.
-// No Phaser, no UI. Emits events when monsters are updated or die.
+// No Phaser, no UI. Emits events when monsters are updated, die, attack, or when monster turn finishes.
 
 import { Monster } from '../types'
 
-export type MonsterEvent = 'MonsterUpdated' | 'MonsterDead' | 'AllMonsterDead'
+export type MonsterEvent = 'MonsterUpdated' | 'MonsterDead' | 'AllMonsterDead' | 'MonsterAttack' | 'MonsterTurnFinished'
 export type MonsterListener = (payload?: any) => void
 
 export default class MonsterSystem {
@@ -71,6 +71,7 @@ export default class MonsterSystem {
     const m = this.monsters.find(x => x.id === monsterId)
     if (!m) return
 
+    const prevHp = m.hp
     m.hp = Math.max(0, m.hp - value)
 
     // Always emit MonsterUpdated with damage and current hp
@@ -80,6 +81,9 @@ export default class MonsterSystem {
     if (m.hp === 0 && m.alive) {
       m.alive = false
       this.emit('MonsterDead', { id: m.id, name: m.name })
+    } else if (m.hp > 0) {
+      // Monster survived the hit and may counterattack in other flows
+      this.emit('MonsterAttack', { monsterId: m.id, monsterName: m.name, damage: m.attack })
     }
 
     // If all monsters dead, emit AllMonsterDead
@@ -95,6 +99,18 @@ export default class MonsterSystem {
     if (!target) return
     // Fixed damage value 10 per spec
     this.damage(target.id, 10)
+  }
+
+  // Execute the monster turn: every alive monster attacks once.
+  executeMonsterTurn(): void {
+    for (const m of this.monsters) {
+      if (m.alive && (m.hp ?? 0) > 0) {
+        // Emit an attack event for the scene to apply to player
+        this.emit('MonsterAttack', { monsterId: m.id, monsterName: m.name, damage: m.attack })
+      }
+    }
+    // After all attacks are emitted, announce turn finished
+    this.emit('MonsterTurnFinished')
   }
 
   isAllDead(): boolean {

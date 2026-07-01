@@ -147,22 +147,15 @@ export default class BattleScene extends Phaser.Scene {
       this.appendLog('Battle Started')
       this.logPanel?.refresh(this.logs)
       this.btn?.refresh({ label: 'FIGHTING...', disabled: true })
-    })
 
-    // When PlayerTurn starts, generate eggs and check auto end
-    this.battleSystem.on('PlayerTurnStarted', () => {
-      // Player turn started: generate eggs
+      // On battle start, generate eggs via EggSystem (EggSystem is pure and does not access ConfigManager)
       this.eggSystem.generate()
-      // refresh egg UI
       this.eggsUI?.refresh(this.eggSystem.getAll())
-      // If player cannot afford cheapest unopened egg, auto-end turn
-      this.autoEndIfCannotAffordAny()
     })
 
-    // When MonsterTurn starts, execute monster attacks
-    this.battleSystem.on('MonsterTurnStarted', () => {
-      // Scene forwards to MonsterSystem to carry out attacks
-      this.monsterSystem.executeMonsterTurn()
+    this.battleSystem.on('BattleTick', () => {
+      // BattleTick is a general timer event; Scene does NOT forward ticks automatically to gameplay systems.
+      // Pet execution happens immediately on egg open; ticks are available for other purposes if needed.
     })
 
     this.battleSystem.on('BattleFinished', () => {
@@ -188,8 +181,6 @@ export default class BattleScene extends Phaser.Scene {
     this.eggSystem.on('EggGenerated', (eggs: RuntimeEgg[]) => {
       // refresh egg UI with runtime eggs (eggId is numeric)
       this.eggsUI?.refresh(eggs)
-      // After generation, check auto end as well
-      this.autoEndIfCannotAffordAny()
     })
 
     this.eggSystem.on('EggOpened', (egg: RuntimeEgg) => {
@@ -198,8 +189,6 @@ export default class BattleScene extends Phaser.Scene {
       this.petSystem.executeFromEgg(egg, this.monsterSystem.getAll())
       // refresh egg UI immediately
       this.eggsUI?.refresh(this.eggSystem.getAll())
-      // After opening, check if player can still afford any unopened egg; auto-end if not
-      this.autoEndIfCannotAffordAny()
     })
 
     // Listen for executed pet effects
@@ -256,8 +245,6 @@ export default class BattleScene extends Phaser.Scene {
       if (!this.playerRuntime.canSpendCoins(e.cost)) {
         this.appendLog('Not enough Coins')
         this.logPanel?.refresh(this.logs)
-        // If player cannot afford the clicked egg, optionally end turn if cannot afford any
-        this.autoEndIfCannotAffordAny()
         return
       }
 
@@ -272,9 +259,6 @@ export default class BattleScene extends Phaser.Scene {
         this.appendLog('Not enough Coins')
         this.logPanel?.refresh(this.logs)
       }
-
-      // After opening, auto-end check
-      this.autoEndIfCannotAffordAny()
     })
 
     // Subscribe to MonsterSystem events to update logs and UI
@@ -298,12 +282,6 @@ export default class BattleScene extends Phaser.Scene {
       // Apply damage to player via PlayerRuntime
       const dmg = p.damage
       this.playerRuntime.damage(dmg)
-    })
-
-    // When MonsterTurn finishes, start next player turn
-    this.monsterSystem.on('MonsterTurnFinished', () => {
-      // Start next player turn
-      this.battleSystem.startPlayerTurn()
     })
 
     this.monsterSystem.on('AllMonsterDead', () => {
@@ -341,13 +319,10 @@ export default class BattleScene extends Phaser.Scene {
       const playerForUI = { ...this.playerConfig, coin: payload.coins }
       this.topUI?.refresh(playerForUI as any)
       this.playersUI?.refresh(playerForUI as any, this.petsConfig)
-      // After coin change, check whether to auto-end turn
-      this.autoEndIfCannotAffordAny()
     })
 
     this.playerRuntime.on('CoinsNotEnough', () => {
       // No system event logging; scene already logs user-facing message when needed
-      this.autoEndIfCannotAffordAny()
     })
 
     // wire button to start the pure BattleSystem
@@ -361,19 +336,31 @@ export default class BattleScene extends Phaser.Scene {
     if (this.battleSystem) this.battleSystem.update(delta)
   }
 
-  private autoEndIfCannotAffordAny(): void {
-    // Find unopened eggs and the minimum cost among them
-    const eggs = this.eggSystem.getAll()
-    const unopened = eggs.filter(e => !e.opened)
-    if (unopened.length === 0) {
-      // all opened => end player turn
-      this.battleSystem.endPlayerTurn()
+  // Exposed method for UI to end the player turn. Scene controls the full turn flow.
+  public endPlayerTurn(): void {
+    // Execute monster turn: each alive monster attacks once
+    this.monsterSystem.executeMonsterTurn()
+
+    // After monster attacks, scene decides if battle continues
+    if (this.monsterSystem.isAllDead()) {
+      this.appendLog('Battle Finished')
+      this.logPanel?.refresh(this.logs)
+      this.battleSystem.stop()
+      this.btn?.refresh({ label: 'VICTORY', disabled: true })
       return
     }
-    const minCost = Math.min(...unopened.map(e => e.cost))
-    if (!this.playerRuntime.canSpendCoins(minCost)) {
-      this.battleSystem.endPlayerTurn()
+
+    if (this.playerRuntime.isDead()) {
+      this.appendLog('Player Dead')
+      this.logPanel?.refresh(this.logs)
+      this.battleSystem.stop()
+      this.btn?.refresh({ label: 'DEFEAT', disabled: true })
+      return
     }
+
+    // Otherwise start next player turn by generating new eggs
+    this.eggSystem.generate()
+    this.eggsUI?.refresh(this.eggSystem.getAll())
   }
 
   private appendLog(message: string): void {

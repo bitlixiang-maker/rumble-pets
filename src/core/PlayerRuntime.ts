@@ -10,11 +10,16 @@ export default class PlayerRuntime {
   private coins: number
   private listeners: Map<PlayerEvent, Set<PlayerListener>> = new Map()
 
+  private readonly initialHp: number
+  private readonly initialCoins: number
+
   constructor(id: string, maxHp: number, hp?: number, coins = 0) {
     this.id = id
     this.maxHp = maxHp
     this.hp = hp !== undefined ? hp : maxHp
     this.coins = coins
+    this.initialHp = this.hp
+    this.initialCoins = this.coins
   }
 
   getCurrentHp(): number {
@@ -71,6 +76,15 @@ export default class PlayerRuntime {
   // Increase coins and emit CoinsChanged
   gainCoin(value: number): void {
     this.coins += value
+    this.emit('CoinsChanged', { coins: this.coins })
+  }
+
+  // Reset runtime state to initial values recorded at construction
+  reset(): void {
+    this.hp = this.initialHp
+    this.coins = this.initialCoins
+    // Emit PlayerUpdated and CoinsChanged so UI can refresh
+    this.emit('PlayerUpdated', { id: this.id, hp: this.hp, maxHp: this.maxHp })
     this.emit('CoinsChanged', { coins: this.coins })
   }
 

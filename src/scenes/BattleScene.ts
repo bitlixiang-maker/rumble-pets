@@ -25,6 +25,7 @@ export default class BattleScene extends Phaser.Scene {
   private petSystem!: PetSystem
   private playerRuntime!: PlayerRuntime
   private eggSystem!: EggSystem
+  private currentLevel: number = 1
 
   // UI references to refresh from events
   private enemies?: EnemyPanel
@@ -41,7 +42,9 @@ export default class BattleScene extends Phaser.Scene {
   async create(): Promise<void> {
     await ConfigManager.initialize()
 
-    const level = ConfigManager.getLevel(1)
+    // start at level 1 by default
+    this.currentLevel = 1
+    const level = ConfigManager.getLevel(this.currentLevel)
     this.configMonsters = ConfigManager.getMonsters(level.monsterPool)
     this.playerConfig = ConfigManager.getPlayer()
     this.petsConfig = ConfigManager.getPets()
@@ -148,9 +151,8 @@ export default class BattleScene extends Phaser.Scene {
       this.logPanel?.refresh(this.logs)
       this.btn?.refresh({ label: 'FIGHTING...', disabled: true })
 
-      // On battle start, generate eggs via EggSystem (EggSystem is pure and does not access ConfigManager)
-      this.eggSystem.generate()
-      this.eggsUI?.refresh(this.eggSystem.getAll())
+      // On battle start, begin first player turn via composition root
+      this.startPlayerTurn()
     })
 
     this.battleSystem.on('BattleTick', () => {
@@ -284,6 +286,11 @@ export default class BattleScene extends Phaser.Scene {
       this.playerRuntime.damage(dmg)
     })
 
+    // When MonsterTurn finishes, call finishMonsterTurn to decide next steps
+    this.monsterSystem.on('MonsterTurnFinished', () => {
+      this.finishMonsterTurn()
+    })
+
     this.monsterSystem.on('AllMonsterDead', () => {
       this.appendLog('Battle Finished')
       this.logPanel?.refresh(this.logs)
@@ -306,12 +313,37 @@ export default class BattleScene extends Phaser.Scene {
       this.playersUI?.refresh(playerForUI as any, this.petsConfig)
     })
 
+    // Handle PlayerDead: execute defeat flow
     this.playerRuntime.on('PlayerDead', () => {
-      this.appendLog('Player Dead')
+      // Defeat flow: stop, disable input, log, reset state and return to level 1 waiting for player
+      this.appendLog('Defeat')
       this.logPanel?.refresh(this.logs)
-      // stop battle and set button to DEFEAT
+
+      // stop battle
       this.battleSystem.stop()
-      this.btn?.refresh({ label: 'DEFEAT', disabled: true })
+
+      // disable interactions
+      this.eggsUI?.setInteractiveSlots(false)
+
+      // reset progression to level 1
+      this.currentLevel = 1
+      const level1 = ConfigManager.getLevel(this.currentLevel)
+      const monstersLevel1 = ConfigManager.getMonsters(level1.monsterPool)
+      this.monsterSystem.initialize(monstersLevel1)
+
+      // reset runtime systems
+      this.eggSystem.reset()
+      this.playerRuntime.reset()
+
+      // refresh UI
+      this.enemies?.refresh(this.monsterSystem.getAll())
+      this.eggsUI?.refresh(this.eggSystem.getAll())
+      const playerForUI = { ...this.playerConfig, currentHP: this.playerRuntime.getCurrentHp(), maxHP: this.playerRuntime.getMaxHp(), coin: this.playerRuntime.getCoins() }
+      this.topUI?.refresh(playerForUI as any)
+      this.playersUI?.refresh(playerForUI as any, this.petsConfig)
+
+      // enable start button for player to restart
+      this.btn?.refresh({ label: 'START BATTLE', disabled: false })
     })
 
     this.playerRuntime.on('CoinsChanged', (payload: any) => {
@@ -336,31 +368,98 @@ export default class BattleScene extends Phaser.Scene {
     if (this.battleSystem) this.battleSystem.update(delta)
   }
 
+  // Exposed method for UI to start the player turn. Scene controls the full turn flow.
+  public startPlayerTurn(): void {
+    // Clear previous eggs
+    this.eggSystem.reset()
+    // Generate new eggs for this round
+    this.eggSystem.generate()
+    // Refresh egg UI
+    this.eggsUI?.refresh(this.eggSystem.getAll())
+    // Enable egg interaction
+    this.eggsUI?.setInteractiveSlots(true)
+  }
+
   // Exposed method for UI to end the player turn. Scene controls the full turn flow.
   public endPlayerTurn(): void {
-    // Execute monster turn: each alive monster attacks once
-    this.monsterSystem.executeMonsterTurn()
+    // Disable egg interaction immediately
+    this.eggsUI?.setInteractiveSlots(false)
+    // Immediately start monster turn
+    this.startMonsterTurn()
+  }
 
-    // After monster attacks, scene decides if battle continues
+  // Exposed method to start the monster turn (calls MonsterSystem only)
+  public startMonsterTurn(): void {
+    this.monsterSystem.executeMonsterTurn()
+  }
+
+  // Called when monster turn finishes (MonsterSystem emits MonsterTurnFinished)
+  public finishMonsterTurn(): void {
+    // Decide victory / defeat / next round
     if (this.monsterSystem.isAllDead()) {
-      this.appendLog('Battle Finished')
-      this.logPanel?.refresh(this.logs)
+      // Victory flow per updated rules
       this.battleSystem.stop()
-      this.btn?.refresh({ label: 'VICTORY', disabled: true })
+      // disable player interactions
+      this.eggsUI?.setInteractiveSlots(false)
+      // append Victory to log
+      this.appendLog('Victory')
+      this.logPanel?.refresh(this.logs)
+
+      // advance level
+      this.currentLevel += 1
+
+      // load the next level and initialize monsters
+      const nextLevel = ConfigManager.getLevel(this.currentLevel)
+      const nextMonsters = ConfigManager.getMonsters(nextLevel.monsterPool)
+      this.monsterSystem.initialize(nextMonsters)
+
+      // reset player and eggs for next battle
+      this.playerRuntime.reset()
+      this.eggSystem.reset()
+
+      // refresh UI for new level
+      this.enemies?.refresh(this.monsterSystem.getAll())
+      this.eggsUI?.refresh(this.eggSystem.getAll())
+      const playerForUI = { ...this.playerConfig, currentHP: this.playerRuntime.getCurrentHp(), maxHP: this.playerRuntime.getMaxHp(), coin: this.playerRuntime.getCoins() }
+      this.topUI?.refresh(playerForUI as any)
+      this.playersUI?.refresh(playerForUI as any, this.petsConfig)
+
+      // start next battle automatically by starting player turn
+      this.startPlayerTurn()
       return
     }
 
     if (this.playerRuntime.isDead()) {
-      this.appendLog('Player Dead')
-      this.logPanel?.refresh(this.logs)
+      // Defeat flow per updated rules
       this.battleSystem.stop()
-      this.btn?.refresh({ label: 'DEFEAT', disabled: true })
+      this.eggsUI?.setInteractiveSlots(false)
+      this.appendLog('Defeat')
+      this.logPanel?.refresh(this.logs)
+
+      // reset progression to level 1
+      this.currentLevel = 1
+      const level1 = ConfigManager.getLevel(this.currentLevel)
+      const monstersLevel1 = ConfigManager.getMonsters(level1.monsterPool)
+      this.monsterSystem.initialize(monstersLevel1)
+
+      // reset runtime systems
+      this.eggSystem.reset()
+      this.playerRuntime.reset()
+
+      // refresh UI
+      this.enemies?.refresh(this.monsterSystem.getAll())
+      this.eggsUI?.refresh(this.eggSystem.getAll())
+      const playerForUI = { ...this.playerConfig, currentHP: this.playerRuntime.getCurrentHp(), maxHP: this.playerRuntime.getMaxHp(), coin: this.playerRuntime.getCoins() }
+      this.topUI?.refresh(playerForUI as any)
+      this.playersUI?.refresh(playerForUI as any, this.petsConfig)
+
+      // enable start button for player to restart
+      this.btn?.refresh({ label: 'START BATTLE', disabled: false })
       return
     }
 
-    // Otherwise start next player turn by generating new eggs
-    this.eggSystem.generate()
-    this.eggsUI?.refresh(this.eggSystem.getAll())
+    // Otherwise start next player turn: clear old eggs and generate new ones
+    this.startPlayerTurn()
   }
 
   private appendLog(message: string): void {

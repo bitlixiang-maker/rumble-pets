@@ -40,6 +40,14 @@ export default class PlayerRuntime {
     }
   }
 
+  // Heal player by value, clamp to max HP, emit PlayerUpdated
+  heal(value: number): void {
+    const prev = this.hp
+    this.hp = Math.min(this.maxHp, this.hp + value)
+    const healed = this.hp - prev
+    this.emit('PlayerUpdated', { id: this.id, healed, hp: this.hp, maxHp: this.maxHp })
+  }
+
   isDead(): boolean {
     return this.hp <= 0
   }
@@ -58,6 +66,12 @@ export default class PlayerRuntime {
     }
     this.emit('CoinsNotEnough', { requested: cost, coins: this.coins })
     return false
+  }
+
+  // Increase coins and emit CoinsChanged
+  gainCoin(value: number): void {
+    this.coins += value
+    this.emit('CoinsChanged', { coins: this.coins })
   }
 
   on(event: PlayerEvent, fn: PlayerListener) {

@@ -277,10 +277,8 @@ export default class BattleScene extends Phaser.Scene {
     })
 
     this.monsterSystem.on('AllMonsterDead', () => {
-      this.appendLog('Battle Finished')
-      this.logPanel?.refresh(this.logs)
-      // stop the BattleSystem to cease ticks
-      this.battleSystem.stop()
+      // Ensure a single authoritative victory path: delegate to handleVictory()
+      this.handleVictory()
     })
 
     // PlayerRuntime events

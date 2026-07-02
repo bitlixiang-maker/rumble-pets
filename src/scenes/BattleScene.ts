@@ -164,22 +164,6 @@ export default class BattleScene extends Phaser.Scene {
       this.btn?.refresh({ label: 'VICTORY', disabled: true })
     })
 
-    // PetSystem emits PetAttack; Scene listens and forwards damage to MonsterSystem
-    // NOTE: Scene must not interpret gameplay — PetSystem must emit fully resolved events.
-    this.petSystem.on('PetAttack', (p: any) => {
-      // preserve existing log behavior
-      const pet = p.pet
-      const damage = p.damage
-      this.appendLog(`${pet.name} attacks`)
-      this.logPanel?.refresh(this.logs)
-
-      // This handler existed previously; keep behavior but do not add logic here.
-      const firstAlive = this.monsterSystem.getAll().find(m => (m.hp ?? 0) > 0)
-      if (firstAlive) {
-        this.monsterSystem.damage(firstAlive.id, damage)
-      }
-    })
-
     // Subscribe to EggSystem events
     this.eggSystem.on('EggGenerated', (eggs: RuntimeEgg[]) => {
       // refresh egg UI with runtime eggs (eggId is numeric)
